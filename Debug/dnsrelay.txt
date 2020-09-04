@@ -1,0 +1,2 @@
+0.0.0.0 www.baidu.com
+0.0.0.0 www.4399.com

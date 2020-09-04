@@ -1,0 +1,7 @@
+
+#ignore all the .sln files
+*.sln
+
+#ignore all the files underneath the file .vs
+.vs/
+
