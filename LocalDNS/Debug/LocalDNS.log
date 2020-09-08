@@ -3,11 +3,12 @@ C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(6,1): warning C4005: 
 C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp : message : 参见“_CRT_SECURE_NO_WARNINGS”的前一个定义
 C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(7,1): warning C4005: “_WINSOCK_DEPRECATED_NO_WARNINGS”: 宏重定义
 C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp : message : 参见“_WINSOCK_DEPRECATED_NO_WARNINGS”的前一个定义
-C:\Users\linln\source\repos\LocalDNS\LocalDNS\IDTrans.h(46,12): warning C4244: “参数”: 从“time_t”转换到“unsigned int”，可能丢失数据
-C:\Users\linln\source\repos\LocalDNS\LocalDNS\IDTrans.h(50,31): warning C4244: “=”: 从“time_t”转换到“int”，可能丢失数据
-C:\Users\linln\source\repos\LocalDNS\LocalDNS\Display.h(34,13): warning C4477: “printf”: 格式字符串“%s”需要类型“char *”的参数，但可变参数 1 拥有了类型“std::string”
-C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(59,7): warning C4101: “data”: 未引用的局部变量
-C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(407,14): warning C4477: “printf”: 格式字符串“%u”需要类型“unsigned int”的参数，但可变参数 1 拥有了类型“char *”
-C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(409,14): warning C4477: “printf”: 格式字符串“%u”需要类型“unsigned int”的参数，但可变参数 1 拥有了类型“char *”
-C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(421,40): warning C4302: “类型强制转换”: 从“void *”到“Byte2”截断
+C:\Users\linln\source\repos\LocalDNS\LocalDNS\IDTrans.h(48,12): warning C4553: “==”: 未使用表达式结果；是否打算使用“=”?
+C:\Users\linln\source\repos\LocalDNS\LocalDNS\cache.h(10,1): warning C4005: “TTL”: 宏重定义
+C:\Users\linln\source\repos\LocalDNS\LocalDNS\IDTrans.h(14): message : 参见“TTL”的前一个定义
+C:\Users\linln\source\repos\LocalDNS\LocalDNS\Display.h(35,13): warning C4477: “printf”: 格式字符串“%s”需要类型“char *”的参数，但可变参数 1 拥有了类型“std::string”
+C:\Users\linln\source\repos\LocalDNS\LocalDNS\Display.h(67,14): warning C4477: “printf”: 格式字符串“%s”需要类型“char *”的参数，但可变参数 1 拥有了类型“std::string”
+C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(53,7): warning C4101: “data”: 未引用的局部变量
+C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(344,41): warning C4302: “类型强制转换”: 从“void *”到“Byte2”截断
+C:\Users\linln\source\repos\LocalDNS\LocalDNS\dnsrelay.cpp(90,6): warning C4101: “jTime”: 未引用的局部变量
   LocalDNS.vcxproj -> C:\Users\linln\source\repos\LocalDNS\Debug\LocalDNS.exe

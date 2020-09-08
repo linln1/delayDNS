@@ -30,7 +30,7 @@ void getDomainFromRequest(char* recv_buf, int recvnum)
 	int j;
 
 	memset(domain, 0, DOMAIN_MAX);
-	memcpy(dom1, &(recv_buf[sizeof(DNSPacket)]), recvnum);
+	memcpy(dom1, &(recv_buf[sizeof(DNSPacket)]), recvnum-16);
 
 	int len = strlen(dom1);
 
@@ -48,29 +48,6 @@ void getDomainFromRequest(char* recv_buf, int recvnum)
 	}
 	domain[k] = '\0';
 }
-//	char dom1[DOMAIN_MAX];
-//	int i = 0, j = 0;
-//	memset(domain, 0, DOMAIN_MAX );
-//	//domain = (char*)malloc(sizeof(char) * DOMAIN_MAX);
-//	memcpy(dom1, &(recv_buf[sizeof(DNSPacket)]), recvnum - 16);
-//
-//	int len = strlen(dom1);
-//	dom1[len] = '\0';
-//	char ch = '.';
-//	int k = 0;
-//	while (i < len) {
-//		if (dom1[i] > 0 && dom1[i] <= 63)
-//			for (j = domain[i], i++; j > 0; j--, i++, k++)
-//				domain[k] = dom1[i];
-//		if (dom1[i] != 0)
-//		{
-//			domain[k] = ch;
-//			k++;
-//		}
-//	}
-//	domain[k] = '\0';
-//}
-
 
 void getDomainFromResponse(char* recv_buf, char* dest) {
 	int len = strlen(recv_buf);

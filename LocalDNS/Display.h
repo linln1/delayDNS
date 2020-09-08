@@ -5,33 +5,35 @@
 #include "IpDomain.h"
 #include "IDTrans.h"
 #include "DNSPacket.h"
+#include "cache.h"
 
 #include <stdlib.h>
 
 
 void DisplayInfo(unsigned short RID,int find,int level)
 {	
-	int Day = 0;
-	int Hour = 0;
-	int Minute = 0;
-	int Second = 0;
-	int Millionseconds = 0;
 	switch(level) {
 		case 1:
 			if (find == NOT_FOUND) {
-				printf("中继\n");
-				printf("域名:%s\n", domain);
+				printf("======================\n");
+				printf("[中继]:\n");
+				printf("[域名]:%s\n", domain);
+				printf("======================\n");
 			}
 			else {
 				if (IPD[find].ip == "0.0.0.0")
 				{
-					printf("屏蔽\n");
-					printf("域名:*.*.*.*%s\n", domain);
+					printf("======================\n");
+					printf("[屏蔽]\n");
+					printf("[域名]:*.*.*.*%s\n", domain);
+					printf("======================\n");
 				}
 				else {
-					printf("服务器\n");
-					printf("域名:%s\n", domain);
-					printf("IP:%s\n", IPD[find].ip);
+					printf("======================\n");
+					printf("[服务器]\n");
+					printf("[域名]:%s\n", domain);
+					printf("[IP]:%s\n", IPD[find].ip);
+					printf("======================\n");
 				}
 			}
 			break;
@@ -42,24 +44,32 @@ void DisplayInfo(unsigned short RID,int find,int level)
 				char temp[64];
 				strftime(temp, sizeof(temp), "%Y/%m/%d %X %A", localtime(&t));
 				printf("时间坐标:%s\n", temp);
-				printf("ID:%uh\n", RID);
+				printf("ID:%u\n", RID);
+				printf("==========================================\n");
 				if (find == -1) {
-					printf("中继\n");
-					printf("域名:%s\n", domain);
+					printf("======================\n");
+					printf("[中继]\n");
+					printf("[域名]:%s\n", domain);
+					printf("======================\n");
 				}
 				else {
 					if (IPD[find].ip == "0.0.0.0")
 					{
-						printf("屏蔽\n");
-						printf("域名:*.*.*.*%s\n", domain);
+						printf("======================\n");
+						printf("[屏蔽]\n");
+						printf("[域名]:*.*.*.*%s\n", domain);
+						printf("======================\n");
 					}
 					else {
-						printf("服务器\n");
-						printf("域名:%s\n", domain);
+						printf("======================\n");
+						printf("[服务器]\n");
+						printf("[域名]:%s\n", domain);
+						printf("[IP]:%s\n", IPD[find].ip);
 						//打印客户端IP地址
 						char ip_temp[40];
 						strcpy(ip_temp, inet_ntoa(IDT[RID].client.sin_addr));
-						printf("IP: %s", ip_temp);
+						printf("[CLIENT IP]: %s", ip_temp);
+						printf("======================\n");
 					}
 				}
 			}
@@ -108,7 +118,7 @@ void DisplayAnswer(unsigned short RID, int level, char* recv_buf) {
 		p += 2;
 		unsigned short low = ntohs(*(unsigned short*)p);    //生存时间低位
 		p += 2;
-		int ttl = (((int)high) << 16) | low;    //高低位组合成生存时间
+		unsigned long  ttl = (((int)high) << 16) | low;    //高低位组合成生存时间
 		int datalen = ntohs(*(unsigned short*)p);   //后面数据长度
 		p += 2;
 
@@ -121,12 +131,17 @@ void DisplayAnswer(unsigned short RID, int level, char* recv_buf) {
 			ip3 = (unsigned char)*p++;
 			ip4 = (unsigned char)*p++;
 
-			printf("ip: %d .%d .%d .%d\n", ip1, ip2, ip3, ip4);
+			sprintf(Ip,"%d.%d.%d.%d", ip1, ip2, ip3, ip4);
+			//if (level) {
+			printf("[url]:%s  [ip]:%s\n", url, Ip);
+			//}
 			if (level == 2)
 			{
 				printf("type:%d  class:%d  ttl:%d\n", resp_type, resp_class, ttl);
 			}
 			//加入缓存
+			string ip = Ip;
+			add_to_cache(url, ip, ttl);
 			break;
 		}
 		else p += datalen;  //直接跳过

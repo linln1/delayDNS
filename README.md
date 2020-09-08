@@ -2,7 +2,7 @@
 
 ## 2020/9/4
     realized the first version of delaydns
-    which can read ip-domain entities from file "dnsrelay.dns"
+    which can read ip-domain entities from file "dnsrelay.dns" by fault
     it could intecept some request to the domain in "dnsrelay.dns" if ip is "0.0.0.0"
 
     we could all also use our own delaydns to replace the default dns setup by computer automatically
@@ -22,4 +22,4 @@
 
     [to do list]
         - add cache function
-        - use fifo/LRU/LFU algorithms to management cache data struct
+        - use fifo/LRU/LFU algorithms to management cache data structure

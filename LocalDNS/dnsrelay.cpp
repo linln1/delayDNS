@@ -15,11 +15,13 @@
 #include <winsock2.h>
 #include <iostream>
 #include <fstream>
+#include <thread>
 
 #include "DNSPacket.h"
 #include "IDTrans.h"
 #include "IpDomain.h"
 #include "Display.h"
+#include "cache.h"
 
 
 #define BUF_SIZE 1024
@@ -29,20 +31,12 @@
 #define FILENAME_LEN 128
 #define ADDR_LEN 256	
 #define DNS_PORT 53
-#define BACK_LOG 5 //同时最多监听5个socket请求
-#define TIME_OUT 10000 //10s
-#define CACHE_SIZE 30
+//#define BACK_LOG 5 //同时最多监听5个socket请求
+#define TIME_OUT 10000 // 10s 超时重传
 
 #pragma comment(lib, "ws2_32.lib")
-
+#pragma warning(disable: 4996)
 using namespace std;
-
-//域名长度最大65
-
-//
-
-int Day, Hour, Minute, Second, Millionseconds;
-
 
 void printinit(int level) {
 	printf("=====================================\n");
@@ -73,23 +67,13 @@ void loadIPD(char* filepath, IpDomain* IPD) {
 			IPDCount++;
 		}
 		fclose(fp);
-		printf("loadIPDomainTable successful");
+		printf("loadIPDomainTable successful\n");
 	}
-
+	printf("===============================\n");
 }
 
 
-//增加cache功能
-typedef struct {
-	string url;
-	string ip;
-}cache_entity;
 
-cache_entity cache[CACHE_SIZE];
-
-void add_to_cache(string url, string ip) {
-	
-}
 
 int main(int argc, char** argv) {
 
@@ -134,14 +118,9 @@ int main(int argc, char** argv) {
 		break;
 	}
 
+	init_cache();
 	InitIDTrans();
 	loadIPD(file, IPD);
-	GetLocalTime(&sysTime);
-	Day = sysTime.wDay;
-	Hour = sysTime.wHour;
-	Minute = sysTime.wMinute;
-	Second = sysTime.wSecond;
-	Millionseconds = sysTime.wMilliseconds;
 
 
 	//获取socket版本库
@@ -149,7 +128,7 @@ int main(int argc, char** argv) {
 		//printf("Error @ WSAStartUp()\n");
 	}
 	else {
-		printf("successful load winsock2 dll lib\n");
+		//printf("successful load winsock2 dll lib\n");
 	}
 	//建立 remoteDNS 服务器连接
 	//AF_UNIX:AF_LOCAL本地通信
@@ -166,7 +145,7 @@ int main(int argc, char** argv) {
 		WSACleanup();
 	}
 	else {
-		printf("Successful setup remoteSocket socket\n");
+		//printf("Successful setup remoteSocket socket\n");
 	}
 	//set the socket I/O mode: In this case FIONBIO
 	//if iMode = 0, blocking is enabled; if iMode != 0, non-blocking mode is enabled.
@@ -177,29 +156,29 @@ int main(int argc, char** argv) {
 		printf("icotlsocket failed with error\n");
 	}
 	else {
-		printf("icotlsocket successful setup remoteSocket's I/O Mode!\n");
+		//printf("icotlsocket successful setup remoteSocket's I/O Mode!\n");
 	}
 	//建立 localDNS 套接字
 	localSocket = socket(AF_INET, SOCK_DGRAM, 0);
 	if (localSocket == INVALID_SOCKET) {
-		printf("Error @ setup localSocket socket\n");
+		//printf("Error @ setup localSocket socket\n");
 		WSACleanup();
 		exit(1);
 	}
 	else {
-		printf("Successful setup localSocket!\n");
+		//printf("Successful setup localSocket!\n");
 	}
 	iResult = ioctlsocket(localSocket, FIONBIO, (u_long FAR*)&iMode);
 	if (iResult != NO_ERROR) {
 		printf("icotlsokcet failed with error\n");
 	}
 	else {
-		printf("icotlsocket successful setup localSocket's I/O Mode!\n");
+		//printf("icotlsocket successful setup localSocket's I/O Mode!\n");
 	}
 
 	localAddr.sin_family = AF_INET;
 	localAddr.sin_port = htons(DNS_PORT);
-	localAddr.sin_addr.S_un.S_addr = inet_addr(LOCAL_DNS);
+	localAddr.sin_addr.s_addr = INADDR_ANY;
 
 	remoteAddr.sin_family = AF_INET;
 	remoteAddr.sin_port = htons(DNS_PORT);
@@ -220,7 +199,7 @@ int main(int argc, char** argv) {
 		exit(1);
 	}
 	else {
-		printf("bind port 53 successful!\n");
+		//printf("bind port 53 successful!\n");
 	}
 		
 /*
@@ -263,63 +242,6 @@ int main(int argc, char** argv) {
 	//从 客户端 向 localAddr 发送请求
 	while (true) {
 
-		int sizeofclient = sizeof(clientAddr);
-		memset(recv_buf, 0, BUF_SIZE);
-
-		//判断是否收到外部DNS的反馈
-		long int count = 0;
-		while (count < 3)
-		{
-			//接收来自外部DNS服务器的响应报文
-			requestVal = recvfrom(remoteSocket, recv_buf, sizeof(recv_buf), 0, (SOCKADDR*)&remoteAddr, &sizeofclient);
-			
-			{
-				send_port = ntohs(remoteAddr.sin_port);
-				strcpy(send_addr, inet_ntoa(remoteAddr.sin_addr));
-				recv_port = DNS_PORT;
-				strcpy(recv_addr, LOCAL_DNS);
-			}
-
-			if (requestVal > -1)
-			{
-				printf("收到外部dns ip: %ud回答\n", send_port);
-//				time_t t = time(NULL);
-	//			char temp[64];
-		//		strftime(temp, sizeof(temp), "%Y/%m/%d %X %A", localtime(&t));
-			//	printf("接收时间:%s\n", temp);
-				
-				//ID转换
-				unsigned short* pID = (unsigned short*)malloc(sizeof(unsigned short));
-				memcpy(pID, recv_buf, sizeof(unsigned short));
-				int m = ntohs(*pID);
-				free(pID);//释放动态分配的内存
-
-				unsigned short oID = htons(IDT[m].oID);
-				memcpy(recv_buf, &oID, sizeof(unsigned short));
-				IDT[m].done = TRUE;
-				IDTCount--;
-
-				//从ID转换表中获取发出DNS请求者的信息
-				clientAddr = IDT[m].client;
-
-				//打印id信息 
-				DisplayAnswer(m ,debuglevel, recv_buf);
-
-				//把recvbuf转发至请求者处
-				responseVal = sendto(localSocket, recv_buf, requestVal, 0, (SOCKADDR*)&clientAddr, sizeof(clientAddr));
-				if (responseVal == SOCKET_ERROR) {
-					cout << "sendto Failed: " << WSAGetLastError() << endl;
-					continue;
-				}
-				else if (responseVal == 0)
-					break;	 
-			}
-
-			count++;
-		}
-
-
-
 		memset(recv_buf, 0, BUF_SIZE);
 		//printf("waiting for connection!\n");
 		int len = sizeof(clientAddr);
@@ -332,12 +254,12 @@ int main(int argc, char** argv) {
 		*/
 		requestVal = recvfrom(localSocket, recv_buf, sizeof(recv_buf), 0, (sockaddr *)&clientAddr, &len);
 		//requestVal = recvfrom(localSocket, recv_buf, BUF_SIZE, 0, (struct SOCKADDR*)&clientAddr, sizeof(clientAddr));
-		if (requestVal == SOCKET_ERROR) {
+		if (requestVal <= 0) {
 			//printf("send request Error from client to localDNS!\n");
 			//closesocket(localSocket);
 		}
 		else {
-			printf("localDNS receive request from client, length: %d\n", requestVal);
+			//printf("localDNS receive request from client, length: %d\n", requestVal);
 
 			time_t t = time(NULL);
 			char temp[64];
@@ -345,33 +267,31 @@ int main(int argc, char** argv) {
 			printf("%s\n", temp);
 
 			recv_buf[requestVal] = '\0';
-
+			
 			{
 				send_port = ntohs(clientAddr.sin_port);
 				strcpy(send_addr, inet_ntoa(clientAddr.sin_addr));
 				recv_port = DNS_PORT;
 				strcpy(recv_addr, LOCAL_DNS);
+				// 
+				cout << "requset from :\n";
+				cout << "send_addr:" << send_addr << endl;
 			}
-			printf("before getDomainFromRequset!\n");
+			//printf("before getDomainFromRequset!\n");
 			getDomainFromRequest(recv_buf, requestVal);//url放入全局变量domain里面
-			printf("before getIpByDomain\n");
+			//printf("before getIpByDomain\n");
 			int find = getIpByDomain(domain);
-			printf("after getIpByDomain\n");
-			if (find == NOT_FOUND) {
-				printf("can't find\n");
-				GetLocalTime(&sysTime);
-				Day = sysTime.wDay;
-				Hour = sysTime.wHour;
-				Minute = sysTime.wMinute;
-				Second = sysTime.wSecond;
-				jTime = (((sysTime.wDay - Day) * 24 + sysTime.wHour - Hour) * 60 + sysTime.wMinute - Minute) * 60 + sysTime.wSecond - Second;
+			int find_in_cache = getIncache(domain);
+			cout << "[requset domain] :" << domain << endl;
+			if (find == NOT_FOUND && find_in_cache == NOT_FOUND) {
+				//printf("can't find\n");
 
 				//将QID信息进行转换
 				Byte2* QID = (Byte2*)malloc(sizeof(Byte2));
 				memcpy(QID, recv_buf, sizeof(Byte2));
 
 
-				//Maybe wrong
+				//转换成RID
 				Byte2 RID = htons(TransID(ntohs(*QID), clientAddr, FALSE));
 				memcpy(recv_buf, &RID, sizeof(Byte2));
 
@@ -379,72 +299,168 @@ int main(int argc, char** argv) {
 				IDT[IDTCount - 1].offset = requestVal;
 
 				//迭代查询，向remoteSocket发送请求				
-				request2Val = sendto(remoteSocket, recv_buf, sizeof(recv_buf), 0, (sockaddr*)&remoteAddr, sizeof(remoteAddr));
+				request2Val = sendto(remoteSocket, recv_buf, requestVal, 0, (sockaddr*)&remoteAddr, sizeof(remoteAddr));
 				if (request2Val == SOCKET_ERROR) {
 					continue;
 				}
 				else if (request2Val) {
-					printf("transfer request to remoteSocket!  length:%d\n",request2Val);
+					//printf("transfer request to remoteSocket!  length:%d\n",request2Val);
 				}
 				free(QID);
 
 				//接收remoteAddr 的应答
-				responseVal = recvfrom(remoteSocket, recv_buf, sizeof(recv_buf), 0, (sockaddr*)&remoteAddr, &len);
-				printf("accept response from remoteAddr!\n");
-				printf("length:%d\n", responseVal);
-				if(responseVal > -1)//	recv_buf[responseVal] = '\0';
-				{
-					send_port = ntohs(remoteAddr.sin_port);
-					strcpy(send_addr, inet_ntoa(remoteAddr.sin_addr));
-					recv_port = DNS_PORT;
-					strcpy(recv_addr, LOCAL_DNS);
-					//print time RID function domain ip
-					printf("before displayInfo\n");
-					DisplayInfo(ntohs(RID), find, debuglevel);
-					DisplayAnswer(ntohs(RID), debuglevel, recv_buf);
-					if (debuglevel == 2) {
-						unsigned char message;
-						printf("send_addr:%ud\n", send_addr);
-						printf("send_port:%ud\n", send_port);
-						printf("recv_addr:%ud\n", recv_addr);
-						printf("recv_port:%ud\n", recv_port);
-						printf("DNSPacket length = %d\n", requestVal);
-						printf("Connect showed as hex:\n");
-						for (int i = 0; i < responseVal; i++)
-						{
-							message = (unsigned char)recv_buf[i];
-							printf("%02x ", message);
+				int count = 3;
+				while (count) {
+					responseVal = recvfrom(remoteSocket, recv_buf, sizeof(recv_buf), 0, (sockaddr*)&remoteAddr, &len);
+					if (responseVal > -1)//	recv_buf[responseVal] = '\0';
+					{
+						//printf("accept response from remoteAddr!\n");
+						send_port = ntohs(remoteAddr.sin_port);
+						strcpy(send_addr, inet_ntoa(remoteAddr.sin_addr));
+						recv_port = DNS_PORT;
+						strcpy(recv_addr, LOCAL_DNS);
+						//print time RID function domain ip
+						//printf("before displayInfo\n");
+						DisplayInfo(ntohs(RID), find, debuglevel);
+						DisplayAnswer(ntohs(RID), debuglevel, recv_buf);
+						if (debuglevel == 2) {
+							unsigned char message;
+							printf("send_addr:%s\n", send_addr);
+							printf("send_port:%u\n", send_port);
+							printf("recv_addr:%s\n", recv_addr);
+							printf("recv_port:%u\n", recv_port);
+							printf("DNSPacket length = %d\n", requestVal);
+							printf("packet showed as hex:\n");
+							for (int i = 0; i < responseVal; i++)
+							{
+								message = (unsigned char)recv_buf[i];
+								printf("%02x ", message);
+							}
+							printf("\n");
+							printf("===============================\n");
 						}
+
+
+						RID = (Byte2)malloc(sizeof(Byte2));
+						memcpy(&RID, recv_buf, sizeof(Byte2));
+						int index = ntohs(RID);
+						Byte2 oID = htons(IDT[index].oID);
+						memcpy(recv_buf, &oID, sizeof(Byte2));
+						IDT[index].done = true;
+
+						clientAddr = IDT[index].client;
+
+						response2Val = sendto(localSocket, recv_buf, responseVal, 0, (SOCKADDR*)&clientAddr, sizeof(clientAddr));
+						if (response2Val == SOCKET_ERROR) {
+							continue;
+						}
+						else if (response2Val == 0) {
+							break;
+						}
+						//free(&RID);
 					}
-
-
-					RID = (Byte2)malloc(sizeof(Byte2));
-					memcpy(&RID, recv_buf, sizeof(Byte2));
-					int index = ntohs(RID);
-					Byte2 oID = htons(IDT[index].oID);
-					memcpy(recv_buf, &oID, sizeof(Byte2));
-					IDT[index].done = true;
-
-					clientAddr = IDT[index].client;
-
-					response2Val = sendto(localSocket, recv_buf, responseVal, 0, (SOCKADDR*)&clientAddr, sizeof(clientAddr));
-					if (response2Val == SOCKET_ERROR) {
-						continue;
-					}
-					else if (response2Val == 0) {
-						break;
-					}
-					//free(&RID);
+					count--;
 				}
-				
-				
-
 				//如果要再加附加功能
-				//从响应里面取出对应的ip地址，写入到IpDomain_cache.txt 文件里面去
+				//从响应里面取出对应的ip地址，写入到cache里面去
+			}
+			else if (find = NOT_FOUND && find_in_cache) {
+				//服务器从缓存里面找到了,需要构造信息返回结果 sendto(localSocket, (sockaddr*)&clientAddr, sizeof(clientAddr));
+				printf("find in the cache!\n");
+
+				int index = find_in_cache;
+				string url = cache[index].url;
+				string ip = cache[index].ip;
+				unsigned long ttl = cache[index].ttl;
+				add_to_cache(url, ip, ttl);//更新一下,LRU算法
+
+				Byte2* QID = (Byte2*)malloc(sizeof(Byte2));
+				memcpy(QID, recv_buf, sizeof(Byte2));
+
+				Byte2 RID = TransID(ntohs(*QID), clientAddr, true);
+
+				if (debuglevel == 2) {
+					printf("======================\n");
+					printf("[ID]:%u\n", RID);
+				}
+
+
+				printf("======================\n");
+				printf("[缓存]\n");
+				cout << "[域名]:" << url << endl;
+				cout << "[IP]:" << ip << endl;
+				printf("======================\n");
+				//printf("[域名]:%s\n", url);
+				//printf("[IP]:%s\n", ip);
+				
+				//打印现在缓存中的信息
+				printf("======================\n");
+				time_t t = time(NULL);
+				char temp[64];
+				strftime(temp, sizeof(temp), "%Y/%m/%d %X %A", localtime(&t));
+				printf("%s\n", temp);
+
+				output_cache();
+				printf("======================\n");
+
+				//构造响应报文
+				memcpy(send_buf, recv_buf, requestVal);
+				Byte2 a = htons(0x8180);
+				memcpy(&send_buf[2], &a, sizeof(Byte2));
+
+				a = htons(0x0001);
+				memcpy(&send_buf[6], &a, sizeof(Byte2));
+				int curLen = 0;
+
+				char answer[16];
+				Byte2 Name = htons(0xc00c);
+				memcpy(answer, &Name, sizeof(Byte2));
+				curLen += sizeof(Byte2);
+
+				Byte2 TypeA = htons(0x0001);
+				memcpy(answer + curLen, &TypeA, sizeof(Byte2));
+				curLen += sizeof(Byte2);
+
+				Byte2 ClassA = htons(0x0001);
+				memcpy(answer + curLen, &ClassA, sizeof(Byte2));
+				curLen += sizeof(Byte2);
+
+				Byte2 timeLive = htons(0x7b);//ttl时间
+				memcpy(answer + curLen, &timeLive, sizeof(unsigned long));
+				curLen += sizeof(unsigned long);
+
+				Byte2 IPLen = htons(0x0004);
+				memcpy(answer + curLen, &IPLen, sizeof(Byte2));
+				curLen += sizeof(Byte2);
+
+				Byte2 Ip = (Byte2)inet_addr(IPD[find].ip.c_str());
+				memcpy(answer + curLen, &Ip, sizeof(unsigned long));
+				curLen += sizeof(unsigned long);
+				curLen += requestVal;
+
+				memcpy(send_buf + requestVal, answer, sizeof(answer));
+
+
+				responseVal = sendto(localSocket, send_buf, curLen, 0, (sockaddr*)&clientAddr, sizeof(clientAddr));
+				if (responseVal == SOCKET_ERROR) {
+					printf("send error from localDNS to client!\n");
+					continue;
+				}
+				else if (responseVal == 0) {
+					break;
+				}
+
+				free(QID);
+
 			}
 			else {//找到了相应的域名
-				printf("already find!\n");
-				
+				printf("find in localDNS!\n");
+				printf("======================\n");
+				time_t t = time(NULL);
+				char temp[64];
+				strftime(temp, sizeof(temp), "%Y/%m/%d %X %A", localtime(&t));
+				printf("[时间坐标]:%s\n", temp);
+				printf("======================\n");
 
 				Byte2* QID = (Byte2*)malloc(sizeof(Byte2));
 				memcpy(QID, recv_buf, sizeof(Byte2));
@@ -517,3 +533,67 @@ int main(int argc, char** argv) {
 }	
 
 
+/*long int count = 0;
+		while (count < 3)
+		{
+			//接收来自外部DNS服务器的响应报文
+			requestVal = recvfrom(remoteSocket, recv_buf, sizeof(recv_buf), 0, (SOCKADDR*)&remoteAddr, &sizeofclient);
+			
+			{
+				send_port = ntohs(remoteAddr.sin_port);
+				strcpy(send_addr, inet_ntoa(remoteAddr.sin_addr));
+				recv_port = DNS_PORT;
+				strcpy(recv_addr, LOCAL_DNS);
+			}
+
+			if (requestVal > -1)
+			{
+				//printf("recieve from remoteDNS ip: %s response\n", send_addr);
+//				time_t t = time(NULL);
+	//			char temp[64];
+		//		strftime(temp, sizeof(temp), "%Y/%m/%d %X %A", localtime(&t));
+			//	printf("接收时间:%s\n", temp);
+				
+				//ID转换
+				unsigned short* pID = (unsigned short*)malloc(sizeof(unsigned short));
+				memcpy(pID, recv_buf, sizeof(unsigned short));
+				int m = ntohs(*pID);
+				free(pID);//释放动态分配的内存
+
+				unsigned short oID = htons(IDT[m].oID);
+				memcpy(recv_buf, &oID, sizeof(unsigned short));
+				IDT[m].done = TRUE;
+				//IDTCount--;
+
+				//从ID转换表中获取发出DNS请求者的信息
+				clientAddr = IDT[m].client;
+
+				//打印id信息 
+				DisplayAnswer(m ,debuglevel, recv_buf);
+				if (debuglevel == 2) {
+					unsigned char message;
+					printf("send_addr:%u\n", send_addr);
+					printf("send_port:%u\n", send_port);
+					printf("recv_addr:%u\n", recv_addr);
+					printf("recv_port:%u\n", recv_port);
+					printf("DNSPacket length = %d\n", requestVal);
+					printf("packet showed as hex:\n");
+					for (int i = 0; i < responseVal; i++)
+					{
+						message = (unsigned char)recv_buf[i];
+						printf("%02x ", message);
+					}
+				}
+
+				//把recvbuf转发至请求者处
+				responseVal = sendto(localSocket, recv_buf, requestVal, 0, (SOCKADDR*)&clientAddr, sizeof(clientAddr));
+				if (responseVal == SOCKET_ERROR) {
+					cout << "sendto Failed: " << WSAGetLastError() << endl;
+					continue;
+				}
+				else if (responseVal == 0)
+					break;	 
+			}
+
+			count++;
+		}*/
