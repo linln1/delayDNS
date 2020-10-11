@@ -21,7 +21,7 @@ void DisplayInfo(unsigned short RID,int find,int level)
 				printf("======================\n");
 			}
 			else {
-				if (IPD[find].ip == "0.0.0.0")
+				if (strcmp(IPD[find].ip , "0.0.0.0")==0)
 				{
 					printf("======================\n");
 					printf("[屏蔽]\n");
@@ -101,8 +101,7 @@ void DisplayAnswer(unsigned short RID, int level, char* recv_buf) {
 			p += (*p) + 1;
 		p += 5;
 	}
-
-	for (int i = 0; i < nresponse; i++) {
+	for (i = 0; i < nresponse; i++) {
 		if ((unsigned char)*p == 0xc0)
 			p += 2;
 		else {
@@ -140,8 +139,10 @@ void DisplayAnswer(unsigned short RID, int level, char* recv_buf) {
 				printf("type:%d  class:%d  ttl:%d\n", resp_type, resp_class, ttl);
 			}
 			//加入缓存
-			string ip = Ip;
+			char ip[16];
+			memcpy(ip, Ip, sizeof(Ip));
 			add_to_cache(url, ip, ttl);
+			output_cache();
 			break;
 		}
 		else p += datalen;  //直接跳过

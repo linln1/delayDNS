@@ -5,3 +5,9 @@
 #ignore all the files underneath the file .vs
 .vs/
 
+#igonre some other files
+MyDNS/*.filters
+MyDNS/*.user
+MyDNS/*.vcxproj
+MyDNS/Debug
+MyDNS/x64

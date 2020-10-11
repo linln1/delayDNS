@@ -1,4 +1,3 @@
-#pragma once
 
 #ifndef DNSPACKET_H
 #define DNSPACKET_H
@@ -9,8 +8,7 @@ typedef unsigned short Byte2;
 #define DOMAIN_MAX 64+1
 
 #include <string.h>
-#include <string>
-SYSTEMTIME sysTime;
+//#include <string>
 
 typedef struct {
 	Byte2 ID;

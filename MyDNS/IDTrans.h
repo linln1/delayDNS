@@ -1,25 +1,28 @@
-#pragma once
 #ifndef IDTRANS_H
 #define IDTRANS_H
 
-#define LEN 64 + 1
+#define LEN 256
 #define TRANS_MAX 1024
 typedef unsigned short Byte2;
 
 #include <winsock2.h>
-#include <string>
+#include<MSWSock.h>
+#include<Windows.h>
 #include <string.h>
 #include <time.h>
 
-#define TTL 10// 过期时间是10s
+#pragma comment(lib, "ws2_32.lib")
+//#include <string>
+
+//#define TTL 10// 过期时间是10s
 
 //在中继DNS的ID转换表
 typedef struct {
 	Byte2 oID;
-	bool done;
+	int done;
 	SOCKADDR_IN client;
 	//int joinTime;
-	std::string url;
+	char *url;
 	int offset;
 
 }IDTrans;
@@ -32,7 +35,7 @@ void InitIDTrans() {
 	int i;
 	for (i = 0; i < TRANS_MAX; i++) {
 		IDT[i].oID = 0;
-		IDT[i].done = false;
+		IDT[i].done = 0;
 		//IDT[i].joinTime = 0;
 		IDT[i].offset = 0;
 		memset(&(IDT[i].client), 0, sizeof(SOCKADDR_IN));
@@ -42,7 +45,7 @@ void InitIDTrans() {
 }
 
 
-Byte2 TransID(Byte2 ID, sockaddr_in clientAddr, bool flag) {
+Byte2 TransID(Byte2 ID,struct sockaddr_in clientAddr, int flag) {
 
 	if (IDTCount == TRANS_MAX) {
 		IDTCount == 0;
@@ -52,7 +55,7 @@ Byte2 TransID(Byte2 ID, sockaddr_in clientAddr, bool flag) {
 	IDT[IDTCount].client = clientAddr;
 	IDT[IDTCount].done = flag;
 	//IDT[IDTCount].joinTime = time(NULL);
-
+	printf("[ID %u->%d]\n", ID, IDTCount);
 	IDTCount++;
 
 	return (Byte2)(IDTCount - 1);
