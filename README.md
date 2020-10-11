@@ -42,3 +42,21 @@
     
 ## [To do list]
     - Change non-blocking socket function to multi-thread method
+
+
+## [Details Of implementation]
+
+## *The module of the DNSrelay*
+### ![module](module.png)
+
+## **The structure of the package header**
+### ![package header](packageheader.png)
+
+## **The orgnazition of SingleSocket and CoupleSocket**
+### ![SingleSocket](SingleSocket.png)
+### ![CoupleSocket](CoupleSocket.png)
+
+
+## [Test result]
+
+### ![result](result.png)
