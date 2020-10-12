@@ -1,4 +1,4 @@
-# delayDNS
+# delayDNS ![logo](logo1.png)
 
 ## 2020/9/4  v1.0 -debug
     realized the first version of delaydns
@@ -20,7 +20,8 @@
     + change two socket structure to one socket structure
     
 ## 2020/9/12  v1.4 --release
-    
+    + add logo
+    + 
 ## [Usage]
     You can test it by use command 
         ./LocalDNS [-d|-dd] [x.x.x.x] ["filepath"]
